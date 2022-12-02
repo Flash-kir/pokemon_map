@@ -9,5 +9,6 @@ class Pokemon(models.Model):
         return self.title
 
 class PokemonEntity(models.Model):
+    pokemon = models.ForeignKey(Pokemon, on_delete=models.SET_NULL, null=True)
     lat = models.FloatField()
     lon = models.FloatField()
