@@ -14,17 +14,22 @@ DEFAULT_IMAGE_URL = (
 )
 
 
-def add_pokemon(folium_map, lat, lon, image_url=DEFAULT_IMAGE_URL):
+def add_pokemon(folium_map, lat, lon, image_url):
     icon = folium.features.CustomIcon(
         image_url,
         icon_size=(50, 50),
     )
     folium.Marker(
         [lat, lon],
-        # Warning! `tooltip` attribute is disabled intentionally
-        # to fix strange folium cyrillic encoding bug
         icon=icon,
     ).add_to(folium_map)
+
+
+def choose_image_url(pokemon, request):
+    pokemon_img = DEFAULT_IMAGE_URL
+    if pokemon.image:
+        pokemon_img = request.build_absolute_uri(pokemon.image.url)
+    return pokemon_img
 
 
 def show_all_pokemons(request):
@@ -38,14 +43,14 @@ def show_all_pokemons(request):
             folium_map,
             pokemon_entity.lat,
             pokemon_entity.lon,
-            request.build_absolute_uri(pokemon_entity.pokemon.image.url) if pokemon_entity.pokemon.image else DEFAULT_IMAGE_URL
+            choose_image_url(pokemon_entity.pokemon, request)
             )
 
     pokemons_on_page = []
     for pokemon in Pokemon.objects.all():
         pokemons_on_page.append({
             'pokemon_id': pokemon.id,
-            'img_url': request.build_absolute_uri(pokemon.image.url) if pokemon.image else DEFAULT_IMAGE_URL,
+            'img_url': choose_image_url(pokemon, request),
             'title_ru': pokemon.title_ru,
         })
 
@@ -68,7 +73,7 @@ def show_pokemon(request, pokemon_id):
             folium_map,
             pokemon_entity.lat,
             pokemon_entity.lon,
-            request.build_absolute_uri(pokemon.image.url) if pokemon.image else DEFAULT_IMAGE_URL
+            choose_image_url(pokemon, request)
         )
     pokemon_card = {
         'pokemon_id': pokemon.id,
@@ -76,21 +81,21 @@ def show_pokemon(request, pokemon_id):
         'title_en': pokemon.title_en,
         'title_jp': pokemon.title_jp,
         'description': pokemon.description,
-        'img_url': request.build_absolute_uri(pokemon.image.url) if pokemon.image else DEFAULT_IMAGE_URL,
+        'img_url': choose_image_url(pokemon, request),
     }
-    if pokemon.previous_evolutions.all():
-        if pokemon.previous_evolutions.all()[0]:
-            pokemon_prev = pokemon.previous_evolutions.all()[0]
-            pokemon_card['next_evolution'] = {
-                'pokemon_id': pokemon_prev.id,
-                'title_ru': pokemon_prev.title_ru,
-                'img_url': pokemon_prev.image.url
-            }
+
+    pokemon_next_evolution = pokemon.next_evolutions.all().first()
+    if pokemon_next_evolution:
+        pokemon_card['next_evolution'] = {
+            'pokemon_id': pokemon_next_evolution.id,
+            'title_ru': pokemon_next_evolution.title_ru,
+            'img_url': choose_image_url(pokemon_next_evolution, request)
+        }
     if pokemon.previous_evolution:
         pokemon_card['previous_evolution'] = {
             'pokemon_id': pokemon.previous_evolution.id,
             'title_ru': pokemon.previous_evolution.title_ru,
-            'img_url': request.build_absolute_uri(pokemon.previous_evolution.image.url) if pokemon.previous_evolution.image else DEFAULT_IMAGE_URL
+            'img_url': choose_image_url(pokemon.previous_evolution, request)
         }
     return render(request, 'pokemon.html', context={
         'map': folium_map._repr_html_(), 'pokemon': pokemon_card
