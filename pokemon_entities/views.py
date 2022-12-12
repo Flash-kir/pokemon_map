@@ -42,7 +42,6 @@ def show_all_pokemons(request):
             )
 
     pokemons_on_page = []
-# post.image.url if post.image else None
     for pokemon in Pokemon.objects.all():
         pokemons_on_page.append({
             'pokemon_id': pokemon.id,
